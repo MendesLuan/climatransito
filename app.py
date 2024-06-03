@@ -43,11 +43,11 @@ cidade = input("Digite o nome da cidade: ")
 origem = input("Digite a origem: ")
 destino = input("Digite o destino: ")
 
-# Obter informações do clima
+# Informações do clima
 weather_info = get_weather_info(cidade, open_weather_map_api_key)
 print(f"Condição do tempo em {cidade}: {weather_info}")
 
-# Obter informações de trânsito
+# Informações de trânsito
 traffic_info = get_traffic_info(origem, destino, google_maps_api_key)
 print(f"Informações de trânsito de {origem} para {destino}: {traffic_info}")
 
