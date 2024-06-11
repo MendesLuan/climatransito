@@ -21,7 +21,7 @@ def get_weather_info(cidade, api_key):
     data = response.json()
 
     if response.status_code == 200:
-        weather_description = data["weather"][0]["description"]
+        weather_description = data["weather"][0]["description"].title()
         temperature = data["main"]["temp"]
         temp_min = data["main"]["temp_min"]
         temp_max = data["main"]["temp_max"]
@@ -38,7 +38,7 @@ def get_weather_info(cidade, api_key):
             for forecast in hourly_data['list'][:5]:
                 time = datetime.datetime.fromtimestamp(forecast['dt']).strftime('%H:%M')
                 temp = forecast['main']['temp']
-                description = forecast['weather'][0]['description']
+                description = forecast['weather'][0]['description'].title()
                 hourly_forecast.append(f"{time} - {temp}°C, {description}")
 
         return {
@@ -83,24 +83,28 @@ server = Flask(__name__)
 
 # Configuração da aplicação Dash
 app = Dash(__name__, server=server, url_base_pathname='/dashboard/')
+app.css.append_css({'external_url': 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css'})
 
+# Definindo a imagem de fundo
+current_dir = os.path.dirname(os.path.abspath(__file__))
+background_image = f'url({os.path.join(current_dir, "ceu_azul.jpg")})'
 app.layout = html.Div([
     html.H1("Painel Interativo de Clima e Trânsito", style={'textAlign': 'center'}),
     html.Div([
         html.Div([
             html.Label("Cidade:"),
-            dcc.Input(id='input-cidade', type='text', value='Araranguá', style={'marginBottom': '10px'}),
+            dcc.Input(id='input-cidade', type='text', value='', placeholder='Digite a cidade', style={'marginBottom': '10px'}),
             html.Button('Obter Clima', id='button-clima', n_clicks=0, style={'marginBottom': '10px'}),
             html.Div(id='output-clima', style={'marginTop': '10px'})
         ], style={'textAlign': 'center', 'marginBottom': '20px'}),
         html.Div([
             html.Label("Origem:"),
-            dcc.Input(id='input-origem', type='text', value='Araranguá', style={'marginBottom': '10px'}),
+            dcc.Input(id='input-origem', type='text', value='', placeholder='Digite a origem', style={'marginBottom': '10px'}),
             html.Label("Destino:"),
-            dcc.Input(id='input-destino', type='text', value='Criciúma', style={'marginBottom': '10px'}),
+            dcc.Input(id='input-destino', type='text', value='', placeholder='Digite o destino', style={'marginBottom': '10px'}),
             html.Button('Obter Trânsito', id='button-transito', n_clicks=0, style={'marginBottom': '10px'}),
             html.Div(id='output-transito', style={'marginTop': '10px'}),
-            dl.Map(id='map', style={'width': '100%', 'height': '500px', 'margin': "auto", "display": "block"}, children=[
+            dl.Map(id='map', style={'width': '100%', 'height': '500px', 'margin': "auto", "display": "block", "backgroundImage": background_image}, children=[
                 dl.TileLayer(),
                 dl.LayerGroup(id="layer")
             ])
@@ -114,21 +118,25 @@ app.layout = html.Div([
     [Input('input-cidade', 'value')]
 )
 def update_clima(n_clicks, cidade):
-    if n_clicks > 0:
+    if n_clicks > 0 and cidade:
         weather_info = get_weather_info(cidade, open_weather_map_api_key)
         if "error" in weather_info:
             return html.Div([
                 html.H3(f"Erro: {weather_info['error']}")
             ])
         return html.Div([
-            html.H3(f"Clima em {cidade}:"),
-            html.P(f"Descrição: {weather_info['description']}"),
-            html.P(f"Temperatura: {weather_info['temperature']}°C"),
-            html.P(f"Mínima: {weather_info['temp_min']}°C"),
-            html.P(f"Máxima: {weather_info['temp_max']}°C"),
-            html.H4("Previsão Horária:"),
-            html.Ul([html.Li(forecast) for forecast in weather_info['hourly_forecast']])
-        ])
+            html.Div([
+                html.H3(f"{cidade}:", style={'textAlign': 'center'}),
+                html.Div([
+                    html.P(f"{weather_info['temperature']}°C", style={'fontSize': '48px', 'fontWeight': 'bold', 'textAlign': 'center', 'marginBottom': '5px'}),
+                    html.P(f"{weather_info['description']}", style={'textAlign': 'center'})
+                ], style={'textAlign': 'center'})
+            ], style={'flex': '1'}),
+            html.Div([
+                html.H4("Previsão Horária:", style={'textAlign': 'center'}),
+                html.Ul([html.Li(forecast) for forecast in weather_info['hourly_forecast']])
+            ], style={'flex': '1', 'padding': '0 20px'})
+        ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'})
     return ""
 
 @app.callback(
@@ -137,7 +145,7 @@ def update_clima(n_clicks, cidade):
     [Input('input-origem', 'value'), Input('input-destino', 'value')]
 )
 def update_transito(n_clicks, origem, destino):
-    if n_clicks > 0:
+    if n_clicks > 0 and origem and destino:
         traffic_info = get_traffic_info(origem, destino, google_maps_api_key)
         if "route_coords" in traffic_info:
             markers = [dl.Marker(position=coord) for coord in traffic_info['route_coords']]
