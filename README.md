@@ -37,6 +37,3 @@ python app.py
 
 7 - Acessar a Aplicação:
 http://127.0.0.1:8050/dashboard/
-
-Dicas Adicionais
-Certifique-se de que o usuário tenha Python instalado em sua máquina.
